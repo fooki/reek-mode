@@ -46,7 +46,7 @@
       (delete-overlay overlay))))
 
 (defun ruby-reek-update-warning-message ()
-  (let ((warning (gethash (line-number-at-pos) reek-warnings)))
+  (let ((warning (gethash (line-number-at-pos) ruby-reek-warnings)))
     (when warning
       (message warning))))
 
@@ -79,7 +79,7 @@ consisting of the line number and warning text"
                        (length chomped-warning)))))
 
   (let* ((reek-warnings (make-hash-table))
-         (chomped (chomp str-warnings))
+         (chomped (ruby-reek-chomp str-warnings))
          (warnings (ruby-reek-remove-total-prefix chomped))
          (delimiter (format "%s:" (buffer-file-name))))
      (dolist (line (rest (split-string warnings delimiter)))
@@ -106,13 +106,13 @@ consisting of the line number and warning text"
            (ruby-reek-delete-overlays)))))
 
 (defun ruby-reek-add-hooks ()
-  (add-hook 'post-command-hook 'update-warning-message nil 'local)
+  (add-hook 'post-command-hook 'ruby-reek-update-warning-message nil 'local)
   (add-hook 'after-save-hook 'smell-code nil t)
   (add-hook 'after-change-functions '(lambda (x y z) ((delete-overlays))) nil t)
   (add-hook 'after-change-functions '(lambda (x y z) ((clear-warnings))) nil t))
 
 (defun ruby-reek-remove-hooks ()
-  (remove-hook 'post-command-hook 'update-warning-message t)
+  (remove-hook 'post-command-hook 'ruby-reek-update-warning-message t)
   (remove-hook 'after-change-functions '(lambda (x y z) (delete-overlays)) t)
   (remove-hook 'after-change-functions '(lambda (x y z) (clear-warnings)) t)
   (remove-hook 'after-save-hook 'smell-code t))
