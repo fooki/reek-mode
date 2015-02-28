@@ -1,9 +1,13 @@
 ;; Current version is heavily inspired by the flymake mode:
 ;; https://github.com/illusori/emacs-flymake
 
+;; Feel free to change these
+(defvar ruby-reek-background      "blue")
+(defvar ruby-reek-optionless-cmd  "reek")
+
 (defface ruby-reek-warning-face
-  '((((class color) (background dark)) (:background "red"))
-    (((class color) (background light)) (:background "red")))
+  `((((class color) (background dark)) (:background ,ruby-reek-background))
+    (((class color) (background light)) (:background ,ruby-reek-background)))
   "Used for marking reek warnings.")
 
 (make-variable-buffer-local
@@ -11,7 +15,8 @@
    "Stores current warnings"))
 
 (defun ruby-reek-run-command ()
-  (let ((cmd-string (format "reek --no-color -s %s" (buffer-file-name))))
+  (let* ((base ruby-reek-optionless-cmd)
+        (cmd-string (format "%s --no-color -s %s" base (buffer-file-name))))
     (shell-command-to-string cmd-string)))
 
 (defun smell-code ()
