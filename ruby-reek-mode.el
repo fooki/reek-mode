@@ -10,7 +10,6 @@
  (defvar ruby-reek-warnings (make-hash-table)
    "Stores current warnings"))
 
-
 (defun ruby-reek-run-command ()
   (let ((cmd-string (format "reek --no-color -s %s" (buffer-file-name))))
     (shell-command-to-string cmd-string)))
@@ -55,29 +54,30 @@
 
 ;;;;;; Begin nasty parsing sorcery ;;;;;;
 
-(defun ruby-reek-parse-warnings (str-warnings)
+(defun ruby-reek-chomp (str)
+  "From http://emacswiki.org/emacs/ElispCookbook"
+  (replace-regexp-in-string (rx (or (: bos (* (any " \t\n")))
+                                    (: (* (any " \t\n")) eos)))
+                            ""
+                            str))
 
-  (defun ruby-reek-chomp (str)
-    "From http://emacswiki.org/emacs/ElispCookbook"
-    (replace-regexp-in-string (rx (or (: bos (* (any " \t\n")))
-                                      (: (* (any " \t\n")) eos)))
-                              ""
-                              str))
+(defun ruby-reek-remove-total-prefix (str-warnings)
+  "First line of reek output is a summary, removed in this function"
+  (apply 'concat (rest (split-string str-warnings "\n"))))
 
-  (defun ruby-reek-remove-total-prefix (str-warnings)
-    "First line of reek output is a summary, removed in this function"
-    (apply 'concat (rest (split-string str-warnings "\n"))))
 
-  (defun ruby-reek-parse-warning (str-warning)
-    "Parse a single reek output warning line. Returns a list
+(defun ruby-reek-parse-warning (str-warning)
+  "Parse a single reek output warning line. Returns a list
 consisting of the line number and warning text"
-    (let* ((chomped-warning (ruby-reek-chomp str-warning))
-           (line-num-length (string-match "[^0-9]" chomped-warning))
-           (line-num (string-to-number (substring chomped-warning 0 line-num-length))))
-      (list line-num
-            (substring chomped-warning (1+ line-num-length)
-                       (length chomped-warning)))))
+  (let* ((chomped-warning (ruby-reek-chomp str-warning))
+         (line-num-length (string-match "[^0-9]" chomped-warning))
+         (line-num (string-to-number (substring chomped-warning 0 line-num-length))))
+    (list line-num
+          (substring chomped-warning (1+ line-num-length)
+                     (length chomped-warning)))))
 
+
+(defun ruby-reek-parse-warnings (str-warnings)
   (let* ((reek-warnings (make-hash-table))
          (chomped (ruby-reek-chomp str-warnings))
          (warnings (ruby-reek-remove-total-prefix chomped))
@@ -108,13 +108,13 @@ consisting of the line number and warning text"
 (defun ruby-reek-add-hooks ()
   (add-hook 'post-command-hook 'ruby-reek-update-warning-message nil 'local)
   (add-hook 'after-save-hook 'smell-code nil t)
-  (add-hook 'after-change-functions '(lambda (x y z) ((delete-overlays))) nil t)
-  (add-hook 'after-change-functions '(lambda (x y z) ((clear-warnings))) nil t))
+  (add-hook 'after-change-functions '(lambda (x y z) (ruby-reek-delete-overlays)) nil t)
+  (add-hook 'after-change-functions '(lambda (x y z) (ruby-reek-clear-warnings)) nil t))
 
 (defun ruby-reek-remove-hooks ()
   (remove-hook 'post-command-hook 'ruby-reek-update-warning-message t)
-  (remove-hook 'after-change-functions '(lambda (x y z) (delete-overlays)) t)
-  (remove-hook 'after-change-functions '(lambda (x y z) (clear-warnings)) t)
+  (remove-hook 'after-change-functions '(lambda (x y z) (ruby-reek-delete-overlays)) t)
+  (remove-hook 'after-change-functions '(lambda (x y z) (ruby-reek-clear-warnings)) t)
   (remove-hook 'after-save-hook 'smell-code t))
 
 (provide 'ruby-reek-mode)
